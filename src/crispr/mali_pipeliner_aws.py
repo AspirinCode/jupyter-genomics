@@ -22,8 +22,8 @@ class PipelineSteps(enum.Enum):
 def main():
     # *********************************************************
     # you'll probably change these on every run, unless you're reprocessing an existing dataset for some reason
-    fastq_set_name = "20160504_D00611_0275_AHMM2JBCXX"
-    human_readable_name = "20160504_CRV4_plasmid"
+    fastq_set_name = "20160627_HeLa_A549_CV4"
+    human_readable_name = "20160627_HeLa_A549_CV4"
 
     # *********************************************************
     # you'll change these lines only when changing the construct library from which you're analyzing data.
@@ -67,14 +67,14 @@ def main():
     len_of_seq_to_match = 19
     num_allowed_mismatches = 1
     num_processors = 3
-    main_dir = "/Users/Birmingham/Repositories/ccbb_tickets/20160210_mali_crispr"
+    main_dir = "/home/ec2-user/jupyter-genomics"
 
     # *********************************************************
     # you'll probably never change these, assuming you use the suggested file structure
-    notebooks_dir = os.path.join(main_dir, "notebooks")
-    data_dir = os.path.join(main_dir, "data")
+    notebooks_dir = os.path.join(main_dir, "notebooks/crispr")
+    data_dir = "/data"
     raw_dir = os.path.join(data_dir, "raw")
-    raw_general_dir = os.path.join(raw_dir, "general")
+    library_def_dir = os.path.join(main_dir, "library_definitions")
     interim_fastq_set_dir = os.path.join(data_dir, "interim", fastq_set_name)
     processed_dir = os.path.join(data_dir, "processed")
 

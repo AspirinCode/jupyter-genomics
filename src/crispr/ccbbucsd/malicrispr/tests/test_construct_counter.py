@@ -15,7 +15,7 @@ __status__ = "development"
 
 
 class TestFunctions(unittest.TestCase):
-    # region _trim_seq tests
+    # region _match_and_count_constructs
     def test__match_and_count_constructs(self):
         # 1: three; 2: two; 3: two; 4: none; 5: two; 6: one
         fw_fastqs = """@D00611:278:HK55CBCXX:1:1101:1138:2170 1:N:0:ATCACG
@@ -78,7 +78,7 @@ GGIIIGIIGIIIIIIIIII
                                ("three", "ATGCAAGCTCATTGTGAAC")]
         construct_names = ["three__one", "two__one", "three__two"]
         construct_counts = get_counter_from_names(construct_names)
-        grna_matcher = GrnaPositionMatcher(grna_names_and_seqs, 19)
+        grna_matcher = GrnaPositionMatcher(grna_names_and_seqs, 19, 1, 1)
         output_construct_counts, output_summary_counts = _match_and_count_constructs(grna_matcher, construct_counts,
                                                                                      fw_fastq_handler, rv_fastq_handler)
         self.assertEqual(3, len(output_construct_counts))
@@ -95,3 +95,4 @@ GGIIIGIIGIIIIIIIIII
         self.assertEqual(1, output_summary_counts["num_constructs_unrecognized"])  # one__two
         self.assertEqual(3, output_summary_counts["num_constructs_recognized"])
 
+    # endregion

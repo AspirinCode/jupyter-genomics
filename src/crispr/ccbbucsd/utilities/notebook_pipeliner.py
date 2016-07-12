@@ -4,7 +4,6 @@ import re
 
 # ccbb libraries
 from ccbbucsd.utilities.analysis_run_prefixes import get_timestamp, get_run_prefix
-from ccbbucsd.utilities.files_and_paths import verify_or_make_dir
 from ccbbucsd.utilities.notebook_runner import execute_notebook, export_notebook_to_html
 
 __author__ = "Amanda Birmingham"
@@ -21,7 +20,7 @@ def execute_run(possible_actions_dict, run_params, ordered_run_steps, parent_dir
     timestamp = get_timestamp()
     run_prefix = _generate_run_prefix(run_params, timestamp)
     if run_folder is None:
-        run_dir = _make_run_dir(parent_dir, timestamp)
+        run_dir = _make_run_dir(parent_dir, run_prefix)
     else:
         run_dir = os.path.join(parent_dir, run_folder)
     methods_dir = _create_run_and_methods_dirs(run_dir)
@@ -47,14 +46,15 @@ def _generate_run_prefix(run_params, timestamp):
     return get_run_prefix(dataset_name, alg_name, timestamp)
 
 
-def _make_run_dir(parent_path, timestamp):
-    return os.path.join(parent_path, "run{0}".format(timestamp))
+def _make_run_dir(parent_path, run_prefix):
+    return os.path.join(parent_path, run_prefix)
 
 
 def _create_run_and_methods_dirs(run_dir_name):
     methods_dir_name = os.path.join(run_dir_name, _get_methods_folder_name())
-    verify_or_make_dir(run_dir_name)
-    verify_or_make_dir(methods_dir_name)
+    # makedirs differs from mkdir in that it will make intermediate directories that don't already exist--
+    # in this case, it will make the run dir that is the parent of the methods dir
+    os.makedirs(methods_dir_name, exist_ok=True)  # True = is OK if path already exists
     return methods_dir_name
 
 

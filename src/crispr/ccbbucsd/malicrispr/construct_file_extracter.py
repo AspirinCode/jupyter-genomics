@@ -1,6 +1,3 @@
-# standard libraries
-import enum
-
 # third-party libraries
 import pandas
 
@@ -12,38 +9,42 @@ __maintainer__ = "Amanda Birmingham"
 __email__ = "abirmingham@ucsd.edu"
 __status__ = "prototype"
 
-
-class ConstructHeaderKey(enum.Enum):
-    PAST_INDEX = "past_index"
-    CONSTRUCT_ID = "SequenceID"
-    FINAL_SEQ = "FinalSequence"
-    GENE_A_NAME = "Gene_A"
-    GENE_A_CHR = "Gene_A_chr"
-    GENE_A_POS = "Gene_A_pos"
-    GENE_A_SEQ = "Gene_A_seq"
-    GENE_B_NAME = "Gene_B"
-    GENE_B_CHR = "Gene_B_chr"
-    GENE_B_POS = "Gene_B_pos"
-    GENE_B_SEQ = "Gene_B_seq"
-    CONSTRUCT_A_NAME = "Construct_A_name"
-    CONSTRUCT_B_NAME = "Construct_B_name"
+_CONSTRUCT_ID = "CONSTRUCT_ID"
+_GENE_A_SEQ = "GENE_A_SEQ"
+_GENE_B_SEQ = "GENE_B_SEQ"
+_CONSTRUCT_A_NAME = "CONSTRUCT_A_NAME"
+_CONSTRUCT_B_NAME = "CONSTRUCT_B_NAME"
 
 
 def get_construct_separator():
     return "__"
 
 
-def extract_construct_and_grna_info(constructs_fp):
-    construct_table = _read_in_construct_table(constructs_fp, rows_to_skip=1)
+def extract_construct_and_grna_info(constructs_fp, column_indices):
+    construct_table = _read_in_construct_table(constructs_fp, column_indices, rows_to_skip=1)
     seq_name_sets = _extract_grnas_from_construct_table(construct_table)
     grna_name_seq_pairs = _format_and_check_grnas_input(seq_name_sets)
-    construct_names = construct_table[ConstructHeaderKey.CONSTRUCT_ID.value].unique().tolist()
+    construct_names = construct_table[_CONSTRUCT_ID].unique().tolist()
     return construct_names, grna_name_seq_pairs
 
 
-def _read_in_construct_table(constructs_fp, rows_to_skip=1):
-    col_names = [x.value for x in ConstructHeaderKey]
-    return pandas.read_table(constructs_fp, skiprows=rows_to_skip, names=col_names)
+def _read_in_construct_table(constructs_fp, column_indices, rows_to_skip=1):
+    result = pandas.read_table(constructs_fp, skiprows=rows_to_skip, header=None)
+    result = _rename_columns(result, column_indices)
+    return result
+
+
+def _rename_columns(construct_table, column_indices):
+    new_names = [_CONSTRUCT_ID, _GENE_A_SEQ, _GENE_B_SEQ]
+    existing_names = list(construct_table.columns.values)
+
+    existing_to_new_names = {}
+    for curr_index in range(0, len(column_indices)):
+        curr_col_index = column_indices[curr_index]
+        curr_existing_name = existing_names[curr_col_index]
+        existing_to_new_names[curr_existing_name] = new_names[curr_index]
+
+    return construct_table.rename(columns=existing_to_new_names)
 
 
 def _extract_grnas_from_construct_table(construct_table):
@@ -51,20 +52,21 @@ def _extract_grnas_from_construct_table(construct_table):
     grna_seq_key = "grna_seq"
 
     # split the construct id in each row into two pieces--the two construct names--and put them into new columns
-    construct_table[ConstructHeaderKey.CONSTRUCT_A_NAME.value], \
-    construct_table[ConstructHeaderKey.CONSTRUCT_B_NAME.value] = \
-        zip(*construct_table[ConstructHeaderKey.CONSTRUCT_ID.value].str.split(get_construct_separator()).tolist())
+    construct_table[_CONSTRUCT_A_NAME], construct_table[_CONSTRUCT_B_NAME] = \
+        zip(*construct_table[_CONSTRUCT_ID].str.split(get_construct_separator()).tolist())
 
     # get the gene/sequence pairs for each of the two genes and concatenate them
-    gene_a_pairs = _extract_grna_name_and_seq_df(construct_table, ConstructHeaderKey.CONSTRUCT_A_NAME.value,
-                                                 ConstructHeaderKey.GENE_A_SEQ.value, grna_name_key, grna_seq_key)
-    gene_b_pairs = _extract_grna_name_and_seq_df(construct_table, ConstructHeaderKey.CONSTRUCT_B_NAME.value,
-                                                 ConstructHeaderKey.GENE_B_SEQ.value, grna_name_key, grna_seq_key)
+    gene_a_pairs = _extract_grna_name_and_seq_df(construct_table, _CONSTRUCT_A_NAME,
+                                                 _GENE_A_SEQ, grna_name_key, grna_seq_key)
+    gene_b_pairs = _extract_grna_name_and_seq_df(construct_table, _CONSTRUCT_B_NAME,
+                                                 _GENE_B_SEQ, grna_name_key, grna_seq_key)
     gene_pairs = pandas.concat([gene_a_pairs, gene_b_pairs])
+    gene_pairs[grna_seq_key] = gene_pairs[grna_seq_key].str.upper()  # upper-case all gRNA sequences
 
     # extract only the unique pairs
     grna_seq_name_groups = gene_pairs.groupby([grna_seq_key, grna_name_key]).groups
-    return [x for x in grna_seq_name_groups]
+    result = [x for x in grna_seq_name_groups]
+    return sorted(result)  # NB sort so that output order is predictable
 
 
 def _extract_grna_name_and_seq_df(construct_table, name_key, seq_key, grna_name_key, grna_seq_key):

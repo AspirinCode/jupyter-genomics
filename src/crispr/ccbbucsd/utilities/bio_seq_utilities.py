@@ -61,14 +61,6 @@ def pair_hiseq_read_files(fastq_filepaths):
     return paired_fastqs_by_base, failure_msgs
 
 
-def gunzip_fastqs(directory):
-    # gunzip the gzipped files; do this from shell because doing through
-    # python gzip module is slow
-    gz_wildpath = get_wild_path(directory, '*.fastq.gz')
-    gunzip_cmd = "gunzip -k " + gz_wildpath
-    os.system(gunzip_cmd)
-
-
 def trim_seq(input_seq, retain_len, retain_5p_end):
     if len(input_seq) < retain_len:
         raise ValueError(

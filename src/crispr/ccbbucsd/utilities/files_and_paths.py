@@ -1,4 +1,5 @@
 # standard libraries
+import fnmatch
 import glob
 import os
 import re
@@ -70,7 +71,7 @@ def get_wild_path(directory, wildcard_filename, prefix_asterisk=True):
     return os.path.join(directory, wildcard_filename)    
 
 
-def get_filepaths_from_wildcard(directory, wildcard_filename, prefix_asterisk=True):
+def get_filepaths_from_wildcard(directory, wildcard_filename, prefix_asterisk=True, all_subdirs=False):
     """Identify all file paths in the input directory that match the input wildcard.
 
     Example:
@@ -90,13 +91,31 @@ def get_filepaths_from_wildcard(directory, wildcard_filename, prefix_asterisk=Tr
     """
     wildcard_filename = (("*" + wildcard_filename) if prefix_asterisk
                          else wildcard_filename)
-    wildpath = os.path.join(directory, wildcard_filename)
-    return [x for x in glob.glob(wildpath)]
+    if all_subdirs:
+        result = _recursively_get_filepaths_from_wildcard(directory, wildcard_filename)
+    else:
+        wildpath = os.path.join(directory, wildcard_filename)
+        # as of python 3.5 glob has a recursive option, so could do all_subdirs case too, but I'm not yet
+        # willing to commit to always using 3.5 or above
+        result = [x for x in glob.glob(wildpath)]
+    return result
 
 
-def get_filepaths_by_prefix_and_suffix(directory, prefix, suffix):
-    suffix_fps = get_filepaths_from_wildcard(directory, suffix)
-    prefix_and_suffix_fps = [x for x in suffix_fps if prefix in x]
+def _recursively_get_filepaths_from_wildcard(directory, wildcard_filename):
+    # code from https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
+    matching_fps = []
+    for root, dirnames, filenames in os.walk(directory):
+        for filename in fnmatch.filter(filenames, wildcard_filename):
+            matching_fps.append(os.path.join(root, filename))
+    return matching_fps
+
+
+def get_filepaths_by_prefix_and_suffix(directory, prefix, suffix, all_subdirs=False):
+    suffix_fps = get_filepaths_from_wildcard(directory, suffix, all_subdirs=all_subdirs)
+    if prefix is not None and prefix is not "":
+        prefix_and_suffix_fps = [x for x in suffix_fps if prefix in x]
+    else:
+        prefix_and_suffix_fps = suffix_fps
     return prefix_and_suffix_fps
 
 
@@ -116,15 +135,34 @@ def group_files(filepaths, regex, replacement=""):
     return filepaths_by_bases
 
 
-def summarize_filenames_for_prefix_and_suffix(directory, run_prefix, counts_suffix):
-    prefix_and_suffix_fps = get_filepaths_by_prefix_and_suffix(directory, run_prefix, counts_suffix)
+def summarize_filenames_for_prefix_and_suffix(directory, run_prefix, counts_suffix, all_subdirs=False):
+    prefix_and_suffix_fps = get_filepaths_by_prefix_and_suffix(directory, run_prefix, counts_suffix,
+                                                               all_subdirs=all_subdirs)
     filenames = []
     for curr_fp in prefix_and_suffix_fps:
         _, filename = os.path.split(curr_fp)
         filenames.append(filename)
+    filenames.sort()  # sort so order is reproducible
     return "\n".join(filenames)
 
 
 def verify_or_make_dir(dir_path):
-    if not os.path.isdir(dir_path):
-        os.mkdir(dir_path)
+    # makedirs differs from mkdir in that it will make intermediate directories that don't already exist
+    os.makedirs(dir_path, exist_ok=True)  # True = is OK if path already exists
+
+
+def gunzip_wildpath(directory, name_match, keep_gzs=False, do_recursive=False):
+    # gunzip the gzipped files; do this from shell because doing through
+    # python gzip module is slow
+    matching_fps = get_filepaths_from_wildcard(directory, name_match, all_subdirs=do_recursive)
+    # note that the -k or --keep switch is only supported in gzip 1.6 or later!
+    keep_switch = "-k " if keep_gzs else ""
+    for curr_fp in matching_fps:
+        gunzip_cmd = "gunzip {0}{1}".format(keep_switch, curr_fp)
+        os.system(gunzip_cmd)
+
+
+def move_to_dir_and_flatten(source_dir, target_dir, name_match):
+    source_wildpath = os.path.join(source_dir, "**", "*" + name_match)
+    mv_cmd = "mv {0} {1}".format(source_wildpath, target_dir)
+    os.system(mv_cmd)

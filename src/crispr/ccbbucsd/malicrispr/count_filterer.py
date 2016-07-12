@@ -78,11 +78,6 @@ def _check_and_trim_seq(input_seq, min_len, max_len, retain_len, retain_5p_end):
     return result
 
 
-# def _write_fasta_record(file_handle, label, sequence):
-#     lines = [">" + label, sequence]
-#     file_handle.writelines(lines)
-
-
 def _summarize_counts(counts_by_type):
     summary_pieces = []
     sorted_keys = sorted(counts_by_type.keys())  # sort to ensure deterministic output ordering

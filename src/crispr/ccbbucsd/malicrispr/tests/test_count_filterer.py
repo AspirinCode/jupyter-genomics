@@ -2,8 +2,7 @@
 import unittest
 
 # project-specific libraries
-from ccbbucsd.malicrispr.count_filterer import _check_and_trim_seq, _filtered_fastq_generator, _summarize_counts, \
-    _trim_seq
+from ccbbucsd.malicrispr.count_filterer import _check_and_trim_seq, _filtered_fastq_generator, _summarize_counts
 from ccbbucsd.utilities.basic_fastq import FastqHandler
 
 __author__ = "Amanda Birmingham"
@@ -13,45 +12,6 @@ __status__ = "development"
 
 
 class TestFunctions(unittest.TestCase):
-    # region _trim_seq tests
-    def test__trim_seq_long(self):
-        input_seq = "ACGT"
-        retain_len = 3
-
-        # trim from 5p end
-        output_5p = _trim_seq(input_seq, retain_len, False)
-        self.assertEqual("CGT", output_5p)
-
-        # trim from 3p end
-        output_3p = _trim_seq(input_seq, retain_len, True)
-        self.assertEqual("ACG", output_3p)
-
-    def test__trim_seq_exact(self):
-        input_seq = "ACGT"
-        retain_len = 4
-
-        # trim from 5p end
-        output_5p = _trim_seq(input_seq, retain_len, False)
-        self.assertEqual(input_seq, output_5p)
-
-        # trim from 3p end
-        output_3p = _trim_seq(input_seq, retain_len, True)
-        self.assertEqual(input_seq, output_3p)
-
-    def test__trim_seq_short(self):
-        input_seq = "ACGT"
-        retain_len = 5
-
-        # trim from 5p end
-        with self.assertRaises(ValueError):
-            _trim_seq(input_seq, retain_len, False)
-
-        # trim from 3p end
-        with self.assertRaises(ValueError):
-            _trim_seq(input_seq, retain_len, True)
-
-    # endregion
-
     # region _check_and_trim_seq tests
     def test__check_and_trim_seq_short(self):
         input_seq = "ACGT"

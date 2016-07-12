@@ -17,7 +17,7 @@ class TestGrnaPositionMatcher(unittest.TestCase):
         test_seq = "AAAT"
         names_and_seqs = [("test_grna_1", "ACCG"),
                           (expected_name, test_seq)]
-        matcher = GrnaPositionMatcher(names_and_seqs, 4)
+        matcher = GrnaPositionMatcher(names_and_seqs, 4, 1, 1)
 
         output = matcher._id_sequence_match(1, test_seq)
         self.assertEqual(expected_name, output)
@@ -26,7 +26,7 @@ class TestGrnaPositionMatcher(unittest.TestCase):
         expected_name = "test_grna_2"
         names_and_seqs = [("test_grna_1", "ACCG"),
                           (expected_name, "AAAT")]
-        matcher = GrnaPositionMatcher(names_and_seqs, 4)
+        matcher = GrnaPositionMatcher(names_and_seqs, 4, 1, 1)
 
         output = matcher._id_sequence_match(1, "AACT")
         self.assertEqual(expected_name, output)
@@ -35,7 +35,7 @@ class TestGrnaPositionMatcher(unittest.TestCase):
         expected_name = "test_grna_2"
         names_and_seqs = [("test_grna_1", "ACCG"),
                           (expected_name, "AAAT")]
-        matcher = GrnaPositionMatcher(names_and_seqs, 4)
+        matcher = GrnaPositionMatcher(names_and_seqs, 4, 1, 1)
 
         output = matcher._id_sequence_match(1, "TTCA")
         self.assertIsNone(output)
@@ -48,7 +48,7 @@ class TestGrnaPositionMatcher(unittest.TestCase):
         name2 = "test_grna_2"
         names_and_seqs = [(name1, "ACCG"),
                           (name2, "AAAT")]
-        matcher = GrnaPositionMatcher(names_and_seqs, 4)
+        matcher = GrnaPositionMatcher(names_and_seqs, 4, 1, 1)
         grnaA, grnaB = matcher._id_pair_matches("AAAA", "ACCC")
         self.assertEqual(name2, grnaA)
         self.assertEqual(name1, grnaB)
@@ -58,7 +58,7 @@ class TestGrnaPositionMatcher(unittest.TestCase):
         name2 = "test_grna_2"
         names_and_seqs = [(name1, "ACCG"),
                           (name2, "AAAT")]
-        matcher = GrnaPositionMatcher(names_and_seqs, 4)
+        matcher = GrnaPositionMatcher(names_and_seqs, 4, 1, 1)
         grnaA, grnaB = matcher._id_pair_matches("AAAA", "AGGG")
         self.assertEqual(name2, grnaA)
         self.assertIsNone(grnaB)
@@ -68,7 +68,7 @@ class TestGrnaPositionMatcher(unittest.TestCase):
         name2 = "test_grna_2"
         names_and_seqs = [(name1, "ACCG"),
                           (name2, "AAAT")]
-        matcher = GrnaPositionMatcher(names_and_seqs, 4)
+        matcher = GrnaPositionMatcher(names_and_seqs, 4, 1, 1)
         grnaA, grnaB = matcher._id_pair_matches("TTAA", "AGGG")
         self.assertIsNone(grnaA)
         self.assertIsNone(grnaB)
@@ -90,9 +90,9 @@ class TestGrnaPositionMatcher(unittest.TestCase):
         names_and_seqs = [("test_grna_1", "ACCG"),
                           (name2, "AAAT"),
                           (name3, "GGAG")]
-        matcher = GrnaPositionMatcher(names_and_seqs, 4)
+        matcher = GrnaPositionMatcher(names_and_seqs, 4, 1, 1)
         grnaA, grnaB = matcher.find_fw_and_rv_read_matches("AACT", "CTCA")
         self.assertEqual(grnaA, name2)
         self.assertEqual(grnaB, name3)
 
-    # end region
+    # endregion
