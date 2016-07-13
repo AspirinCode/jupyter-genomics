@@ -66,13 +66,13 @@ def main():
     # unless you change your analysis approach and/or hardware
     len_of_seq_to_match = 19
     num_allowed_mismatches = 1
-    num_processors = 7  # assumes on an 8-vCPU instance
-    main_dir = "/home/ec2-user/jupyter-genomics"
+    num_processors = 1  # TODO: put back to higher number
+    main_dir = "/Users/Birmingham/Repositories/jupyter-genomics"
 
     # *********************************************************
     # you'll probably never change these, assuming you use the suggested file structure
     notebooks_dir = os.path.join(main_dir, "notebooks/crispr")
-    data_dir = "/data"
+    data_dir = "/Users/Birmingham/Repositories/ccbb_tickets/20160210_mali_crispr/data"
     raw_dir = os.path.join(data_dir, "raw")
     library_def_dir = os.path.join(main_dir, "library_definitions")
     interim_fastq_set_dir = os.path.join(data_dir, "interim", fastq_set_name)
