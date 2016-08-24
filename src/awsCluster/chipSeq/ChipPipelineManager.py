@@ -1,5 +1,6 @@
 __author__ = 'Guorong Xu<g1xu@ucsd.edu>'
 
+import os
 import YamlFileMaker
 from util import DesignFileLoader
 
