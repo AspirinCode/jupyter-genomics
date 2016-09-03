@@ -1,0 +1,445 @@
+""" Module to test exec_bowtie member methods.
+    This module contains unit tests for exec_bowtie.py.
+"""
+
+import os
+import unittest
+import shutil
+
+from src import exec_bowtie
+
+__author__ = "YiDing Fang"
+__maintainer__ = "YiDing Fang"
+__email__ = "yif017@eng.ucsd.edu"
+__status__ = "prototype"
+
+# input file contents. For future use.
+_TRIM_R1_FASTQ_STR = """"""
+_TRIM_R2_FASTQ_STR = """"""
+
+_BOWTIE_PATH = '/usr/local/bowtie2-2.2.9/bowtie2'
+
+
+class TestExecBowtie(unittest.TestCase):
+    """ Unit test exec_megahit methods """
+
+    def setup_path(self):
+        """ create strings corresponding to the temporary directories and files to be used in unit tests """
+
+        # build executable extension
+        _BUILD_EXT = '-build'
+
+        # input directories
+        _EXAMPLE_DIR = 'example'
+        _INDEX_DIR = 'index'
+        _REFERENCE_DIR = 'reference'
+        _READS_DIR = 'reads'
+
+        # reference files base name
+        _REFERENCE_FA_STR = 'lambda_virus.fa'
+
+        # base name for the sample scaffold files found in ./bowtie
+        _SCAFFOLD_BASE_STR = 'lambda_virus'
+
+        # input reads
+        _SAMPLE_1_FQ_STR = 'reads_1.fq'
+        _SAMPLE_2_FQ_STR = 'reads_2.fq'
+
+        # output file name
+        _OUTPUT_SAM_STR = 'lambda_virus_sample.sam'
+
+        # temporary directories to be used
+        _UNITTEST_DIR_STR = 'bowtie_unittest_temp_dir'
+        _OUTPUT_DIR_STR = 'output'
+        _INPUT_DIR_STR = 'input'
+
+        # full file paths
+        self.bowtie_path = _BOWTIE_PATH
+        self.bowtie_build_path = self.bowtie_path + _BUILD_EXT
+
+        # full file paths
+        self.unittest_dir = _UNITTEST_DIR_STR
+        self.output_dir = os.path.join(_UNITTEST_DIR_STR, _OUTPUT_DIR_STR)
+        self.input_dir = os.path.join(_UNITTEST_DIR_STR, _INPUT_DIR_STR)
+
+        # output index directory and index bt2 files
+        self.output_index_dir = os.path.join(self.output_dir, _INDEX_DIR)
+        self.output_scaffold_index = os.path.join(self.output_index_dir, _SCAFFOLD_BASE_STR)
+
+        # output sam file
+        self.output_sam = os.path.join(self.output_dir, _OUTPUT_SAM_STR)
+
+        bowtie_dir, executable = os.path.split(_BOWTIE_PATH)
+        bowtie_example_dir = os.path.join(bowtie_dir, _EXAMPLE_DIR)
+        bowtie_index_dir = os.path.join(bowtie_example_dir, _INDEX_DIR)
+        bowtie_reference_dir = os.path.join(bowtie_example_dir, _REFERENCE_DIR)
+        bowtie_reads_dir = os.path.join(bowtie_example_dir, _READS_DIR)
+
+        self.index_dir = bowtie_index_dir
+        self.scaffold_index = os.path.join(bowtie_index_dir, _SCAFFOLD_BASE_STR)
+        self.sample_reference_fa = os.path.join(bowtie_reference_dir, _REFERENCE_FA_STR)
+        self.sample_fq_1 = os.path.join(bowtie_reads_dir, _SAMPLE_1_FQ_STR)
+        self.sample_fq_2 = os.path.join(bowtie_reads_dir, _SAMPLE_2_FQ_STR)
+
+    # TODO: Check if the OSError is thrown in case we remove something improperly
+    def clear_dir(self, target_dir):
+        """ Selectively remove files in a directory using the given file extension names """
+
+        # output file extensions
+        _OUT_EXT = ['.fq', '.fastq', '.fa', '.fasta', '.txt', '.lib', '.bin', '.info', '.lib_info',
+                    '.log', '.tex', '.txt', '.tsv', '.pdf', '.sam', '.bt2']
+
+        if os.path.exists(target_dir):
+            # remove all the files in the intermediate contigs directory
+            filelist = [f for f in os.listdir(target_dir) if f.endswith(tuple(_OUT_EXT))]
+            for f in filelist:
+                f_path = os.path.join(target_dir, f)
+                os.remove(f_path)
+
+    def setUp(self):
+        """ create temporary files and directories to be used in the unit tests """
+
+        self.setup_path()
+        # create a sample directory to use for input and output
+        if not os.path.exists(self.unittest_dir):
+            os.makedirs(self.unittest_dir)
+            print("created directory: {0}".format(self.unittest_dir))
+        else:
+            print("There exists conflicting directory named: {0}".format(self.unittest_dir))
+
+        temp_dir_list = [self.input_dir, self.output_dir, self.output_index_dir]
+        for temp_dir in temp_dir_list:
+            # create the appropriate directories
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+                print("created directory: {0}".format(temp_dir))
+            else:
+                print("There exists conflicting directory named: {0}".format(temp_dir))
+
+        input_test_files = [self.sample_fq_1, self.sample_fq_2, self.sample_reference_fa]
+        for test_file in input_test_files:
+            if not os.path.isfile(test_file):
+                raise ValueError( "Input file {0} does not exist. Please check metaquast/test_Data directory for sample test files".format(test_file))
+
+    def tearDown(self):
+        """delete temporary files and directories generated by setUp method and megahit subprocess calls"""
+
+        if os.path.exists(self.unittest_dir):
+            if os.path.exists(self.input_dir):
+                self.clear_dir(self.input_dir)
+                os.rmdir(self.input_dir)
+                print("removed directory: {0}".format(self.input_dir))
+            if os.path.exists(self.output_dir):
+                if os.path.exists(self.output_sam):
+                    os.remove(self.output_sam)
+                expected_sub_dir_list = [self.output_index_dir]
+                for sub_dir in expected_sub_dir_list:
+                    if os.path.exists(sub_dir):
+                        shutil.rmtree(sub_dir)
+                        print("removed directory: {0}".format(sub_dir))
+                os.rmdir(self.output_dir)
+                print("removed directory: {0}".format(self.output_dir))
+            # remove the unittest directory
+            os.rmdir(self.unittest_dir)
+            print("removed directory: {0}".format(self.unittest_dir))
+        else:
+            print("The unittest directory {0} does not exist".format(self.unittest_dir))
+
+    # region form_bowtie_build_cmd_list tests
+    def test_form_bowtie_build_cmd_list_no_args(self):
+        """test that the form_bowtie_build_cmd_list correctly raises a Value Error when invalid empty string is used in
+        place of required input"""
+
+        # arguments to be formatted
+        null_bowtie_build_path = ''
+        null_input_contigs_fa = ''
+        null_output_index = ''
+
+        with self.assertRaises(ValueError):
+            exec_bowtie.form_bowtie_build_cmd_list(null_bowtie_build_path, null_input_contigs_fa, null_output_index)
+
+    def test_form_bowtie_build_cmd_list_invalid_num_args(self):
+        """test that form_bowtie_build_cmd_list correctly raises a Type Error when the wrong number of input arguments
+        is used"""
+
+        with self.assertRaises(TypeError):
+            exec_bowtie.form_bowtie_build_cmd_list(self.bowtie_path)
+
+    def test_form_bowtie_build_cmd_list(self):
+        """test shall check that from_bowtie_build_cmd_list correctly generates bowtie command list when passed valid
+        arguments for the bowtie-build file path, input contigs fasta file, and output index directory"""
+
+        cmd_bowtie_build_list = ['/usr/local/bowtie2-2.2.9/bowtie2-build',
+                                 '/usr/local/bowtie2-2.2.9/example/reference/lambda_virus.fa',
+                                 'bowtie_unittest_temp_dir/output/index/lambda_virus']
+
+        self.assertEqual(cmd_bowtie_build_list, exec_bowtie.form_bowtie_build_cmd_list(self.bowtie_build_path,
+                                                                                       self.sample_reference_fa,
+                                                                                       self.output_scaffold_index))
+    # endregion
+
+    # region form_bowtie_cmd_list tests
+    def test_form_bowtie_cmd_list_no_args(self):
+        """test that the form_bowtie_cmd_list correctly raises a Value Error when invalid empty string is used in place
+        of required input"""
+
+        # arguments to be formatted
+        null_bowtie_path = ''
+        null_index_path = ''
+        null_pe1_fastq = []
+        null_pe2_fastq = []
+        null_u_fastq = []
+        null_output_sam_path = ''
+
+        with self.assertRaises(ValueError):
+            exec_bowtie.form_bowtie_cmd_list(null_bowtie_path, null_index_path, null_pe1_fastq, null_pe2_fastq,
+                                             null_u_fastq, null_output_sam_path)
+
+    def test_form_bowtie_cmd_list_invalid_num_args(self):
+        """test that form_bowtie_cmd_list correctly raises a Type Error when the wrong number of
+        input arguments is used"""
+
+        with self.assertRaises(TypeError):
+            exec_bowtie.form_bowtie_cmd_list(self.bowtie_path)
+
+    def test_form_bowtie_cmd_list(self):
+        """test that form_bowtie_cmd_list correctly generates bowtie command list when passed valid arguments for
+        the bowtie file path, input index base name, input forward, reverse, and unpaired fastq files, and the
+        path to the output sam file"""
+
+        cmd_bowtie_list = ['/usr/local/bowtie2-2.2.9/bowtie2',
+                           '-x', '/usr/local/bowtie2-2.2.9/example/index/lambda_virus',
+                           '-1', '/usr/local/bowtie2-2.2.9/example/reads/reads_1.fq',
+                           '-2', '/usr/local/bowtie2-2.2.9/example/reads/reads_2.fq',
+                           '-S', 'bowtie_unittest_temp_dir/output/lambda_virus_sample.sam']
+
+        sample_fq_1 = [self.sample_fq_1]
+        sample_fq_2 = [self.sample_fq_2]
+        sample_fq_u = []
+
+        self.assertEqual(cmd_bowtie_list, exec_bowtie.form_bowtie_cmd_list(self.bowtie_path, self.scaffold_index,
+                                                                           sample_fq_1, sample_fq_2, sample_fq_u,
+                                                                           self.output_sam))
+    # endregion
+
+    # region run_bowtie_build_cmd_list
+    def test_run_bowtie_build_no_args(self):
+        """test that run_bowtie correctly raises a Value Error when invalid empty string is used in place of
+        required input"""
+
+        # arguments to be formatted
+        null_bowtie_build_path = ''
+        null_input_contigs_fa = ''
+        null_output_index = ''
+
+        with self.assertRaises(ValueError):
+            exec_bowtie.run_bowtie_build(null_bowtie_build_path, null_input_contigs_fa, null_output_index)
+
+    def test_run_bowtie_build_invalid_num_args(self):
+        """test that run_bowtie_build correctly raises a Type Error when the wrong number of input arguments
+        is used"""
+
+        with self.assertRaises(TypeError):
+            exec_bowtie.run_bowtie_build(self.bowtie_path)
+
+    def test_run_bowtie_build_with_existing_output_index(self):
+        """test that run_bowtie_build correctly raises an OSError when the specified output index base name exists"""
+
+        _BOTIE_INDEX_FILE_EXT = '.bt2'
+        _SAMPLE_BOWTIE_STR = 'unittest test_run_bowtie_build_with_existing_output_index'
+
+        if not os.path.exists(self.output_index_dir):
+            os.mkdir(self.output_index_dir)
+
+        for x in range(1,7):
+            sample_index_str = self.output_scaffold_index + '.' + str(x) + _BOTIE_INDEX_FILE_EXT
+            sample_index_file = open(sample_index_str, 'w+')
+            sample_index_file.write(_SAMPLE_BOWTIE_STR)
+            sample_index_file.close()
+
+        with self.assertRaises(OSError):
+            exec_bowtie.run_bowtie_build(self.bowtie_build_path, self.sample_reference_fa, self.output_scaffold_index)
+
+    def test_run_bowtie_build_good_stderr(self):
+        """test that bowtie2-build subprocess call does not report an execution Error when run_bowtie is passed valid
+        arguments for the bowtie path, input contigs, and output index base name"""
+
+        _BOWTIE_EXECUTION_ERROR = 'Error:'
+
+        stdout, stderr = exec_bowtie.run_bowtie_build(self.bowtie_build_path, self.sample_reference_fa,
+                                                      self.output_scaffold_index)
+
+        self.assertEqual(stderr.find(_BOWTIE_EXECUTION_ERROR), -1)
+
+    def test_run_bowtie_build_index_exists(self):
+        """test that bowtie2-build subprocess call correctly generates nonempty index directory when run_bowtie is
+        passed valid arguments for the bowtie path, input contigs, and output index base name"""
+
+        index_file_count = 0
+
+        output, err = exec_bowtie.run_bowtie_build(self.bowtie_build_path,
+                                                   self.sample_reference_fa, self.output_scaffold_index)
+
+        if os.stat(self.output_index_dir) > 0:
+            for f in os.listdir(self.output_index_dir):
+                index_file_count += 1
+
+        self.assertTrue(index_file_count > 0)
+    # endregion
+
+    # region run_bowtie tests
+    def test_run_bowtie_no_args(self):
+        """test that the form_bowtie_cmd_list correctly raises a Value Error when invalid empty string is used in place
+        of required input"""
+
+        # arguments to be formatted
+        null_bowtie_path = ''
+        null_index_path = ''
+        null_pe1_fastq = []
+        null_pe2_fastq = []
+        null_u_fastq = []
+        null_output_sam_path = ''
+
+        with self.assertRaises(ValueError):
+            exec_bowtie.run_bowtie(null_bowtie_path, null_index_path, null_pe1_fastq, null_pe2_fastq,
+                                   null_u_fastq, null_output_sam_path)
+
+    def test_run_bowtie_invalid_num_args(self):
+        """test that form_bowtie_cmd_list correctly raises a Type Error when the wrong number of
+        input arguments is used"""
+
+        with self.assertRaises(TypeError):
+            exec_bowtie.run_bowtie(self.bowtie_path)
+
+    def test_run_bowtie_cmd_good_stderr(self):
+        """test that bowtie2 subprocess call does not report execution errors when run_bowtie is passed valid
+        arguments for the bowtie file path, input index base name, input forward, reverse, and unpaired fastq files, and
+         the path to the output sam file"""
+
+        _BOWTIE_EXECUTION_ERROR = 'Error:'
+
+        sample_fq_1 = [self.sample_fq_1]
+        sample_fq_2 = [self.sample_fq_2]
+        sample_fq_u = []
+
+        stdout, stderr = exec_bowtie.run_bowtie(self.bowtie_path, self.scaffold_index,
+                                         sample_fq_1, sample_fq_2, sample_fq_u, self.output_sam)
+
+        self.assertEqual(stderr.find(_BOWTIE_EXECUTION_ERROR), -1)
+
+    def test_run_bowtie_cmd_list_output_sam_exists(self):
+        """test that bowtie2 subprocess call generates the expected output sam file when run_bowtie is passed
+        valid arguments for the bowtie file path, input index base name, path to the output sam file, and
+        input forward, reverse, and unpaired fastq files"""
+
+        sample_fq_1 = [self.sample_fq_1]
+        sample_fq_2 = [self.sample_fq_2]
+        sample_fq_u = []
+
+        exec_bowtie.run_bowtie(self.bowtie_path, self.scaffold_index, sample_fq_1,
+                               sample_fq_2, sample_fq_u, self.output_sam)
+
+        self.assertTrue(os.stat(self.output_sam) > 0)
+    # endregion
+
+    # region build_run_bowtie tests
+    def test_build_run_bowtie_no_args(self):
+        """test that build_run_bowtie correctly raises a Value Error when invalid empty arguments are passed instead of
+        expected bowtie file path, reference contigs, output index base name, unpaired and paired end fastq, and an
+        output sam file path"""
+
+        # arguments to be formatted
+        null_bowtie_path = ''
+        null_input_contigs_fa = ''
+        null_index_path = ''
+        null_pe1_fastq = []
+        null_pe2_fastq = []
+        null_u_fastq = []
+        null_output_sam_path = ''
+
+        with self.assertRaises(ValueError):
+            exec_bowtie.build_run_bowtie(null_bowtie_path, null_input_contigs_fa, null_index_path, null_pe1_fastq,
+                                         null_pe2_fastq, null_u_fastq, null_output_sam_path)
+
+    def test_build_run_bowtie_invalid_num_args(self):
+        """test that build_run_bowtie correctly raises a Type Error when the wrong number of arguments are passed"""
+
+        with self.assertRaises(TypeError):
+            exec_bowtie.build_run_bowtie(self.bowtie_path)
+
+    def test_build_run_bowtie_with_existing_output_index(self):
+        """test that build_run_bowtie_exsiting_output_index correctly raises an OSError when
+        the specified output index base name exists"""
+
+        _BOTIE_INDEX_FILE_EXT = '.bt2'
+        _SAMPLE_BOWTIE_STR = 'unittest test_build_run_bowtie_with_existing_output_index'
+
+        sample_fq_1 = [self.sample_fq_1]
+        sample_fq_2 = [self.sample_fq_2]
+        sample_fq_u = []
+
+        if not os.path.exists(self.output_index_dir):
+            os.mkdir(self.output_index_dir)
+
+        for x in range(1,7):
+            sample_index_str = self.output_scaffold_index + '.' + str(x) + _BOTIE_INDEX_FILE_EXT
+            sample_index_file = open(sample_index_str, 'w+')
+            sample_index_file.write(_SAMPLE_BOWTIE_STR)
+            sample_index_file.close()
+
+        with self.assertRaises(OSError):
+            exec_bowtie.build_run_bowtie(self.bowtie_path, self.sample_reference_fa, self.output_scaffold_index,
+                                         sample_fq_1, sample_fq_2, sample_fq_u, self.output_sam)
+
+    def test_build_run_bowtie_cmd_good_stderr(self):
+        """test that bowtie2-build and bowtie2 suprocess call do not report execution errors when build_run_bowtie is
+        passed valid arguments for the bowtie file path, input index base name, output to sam path,
+        input forward, reverse, and unpaired fastq files"""
+
+        _BOWTIE_EXECUTION_ERROR = 'Error:'
+
+        sample_fq_1 = [self.sample_fq_1]
+        sample_fq_2 = [self.sample_fq_2]
+        sample_fq_u = []
+
+        buildout, builderr, stdout, stderr = exec_bowtie.build_run_bowtie(self.bowtie_path, self.sample_reference_fa,
+                                                      self.output_scaffold_index, sample_fq_1, sample_fq_2, sample_fq_u,
+                                                      self.output_sam)
+
+        self.assertTrue(builderr.find(_BOWTIE_EXECUTION_ERROR) is -1 and
+                        stderr.find(_BOWTIE_EXECUTION_ERROR) is -1)
+
+    def test_build_run_bowtie_index_exists(self):
+        """test that bowtie2-build subprocess call generates nonempty output index directory when build_run_bowtie is
+         passed valid arguments for the bowtie file path, input index base name, output to sam path,
+         input forward, reverse, and unparied fastq files"""
+
+        index_file_count = 0
+
+        sample_fq_1 = [self.sample_fq_1]
+        sample_fq_2 = [self.sample_fq_2]
+        sample_fq_u = []
+
+        exec_bowtie.build_run_bowtie(self.bowtie_path, self.sample_reference_fa, self.output_scaffold_index,
+                                     sample_fq_1, sample_fq_2, sample_fq_u, self.output_sam)
+
+        if os.stat(self.output_index_dir) > 0:
+            for f in os.listdir(self.output_index_dir):
+                index_file_count += 1
+
+        self.assertTrue(index_file_count > 0)
+
+    def test_build_run_bowtie_output_sam_exists(self):
+        """test that bowtie2-build subprocess call generates the expected output sam file when build_run_bowtie is
+         passed valid arguments for the bowtie file path, input index base name, output to sam path,
+         input forward, reverse, and unparied fastq files"""
+
+        sample_fq_1 = [self.sample_fq_1]
+        sample_fq_2 = [self.sample_fq_2]
+        sample_fq_u = []
+
+        exec_bowtie.build_run_bowtie(self.bowtie_path, self.sample_reference_fa, self.output_scaffold_index,
+                                     sample_fq_1, sample_fq_2, sample_fq_u, self.output_sam)
+
+        self.assertTrue(os.stat(self.output_sam) > 0)
+        # endregion
